@@ -71,6 +71,7 @@ public class NotificationSubscriberService extends AbstractExecutionThreadServic
   private final MessagingService messagingService;
   private final String[] topics;
   private final List<NotificationSubscriberThread> subscriberThreads;
+  /** Temporarily unused **/
   private final Transactional transactional;
   private final Store store;
   private final ProgramLifecycleService lifecycleService;

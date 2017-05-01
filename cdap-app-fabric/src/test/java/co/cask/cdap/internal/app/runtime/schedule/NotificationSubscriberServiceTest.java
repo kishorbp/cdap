@@ -24,7 +24,7 @@ import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.utils.Tasks;
 import co.cask.cdap.internal.AppFabricTestHelper;
 import co.cask.cdap.internal.app.runtime.schedule.constraint.Constraint;
-import co.cask.cdap.internal.app.runtime.schedule.trigger.Trigger;
+import co.cask.cdap.internal.app.runtime.schedule.trigger.PartitionTrigger;
 import co.cask.cdap.messaging.MessagingService;
 import co.cask.cdap.messaging.TopicMetadata;
 import co.cask.cdap.messaging.client.StoreRequestBuilder;
@@ -120,7 +120,7 @@ public class NotificationSubscriberServiceTest {
 
   @Test
   public void testRunWorkflow() throws Exception {
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 5; i++) {
       testNewPartition();
     }
   }
@@ -169,11 +169,12 @@ public class NotificationSubscriberServiceTest {
 
     String name = topicId.getTopic() + "-" + programId.getProgram();
     Notification notification =
-      new Notification(0L, Notification.Type.PARTITION, ImmutableMap.of("datasetId", name));
+      new Notification(Notification.Type.PARTITION, ImmutableMap.of("datasetId", name));
     scheduleMap.put(notification.getNotificationKey(),
                     ImmutableList.of(
                       new ProgramSchedule(name, "",
-                                          programId, ImmutableMap.<String, String>of(), new Trigger(),
+                                          programId, ImmutableMap.<String, String>of(),
+                                          new PartitionTrigger(programId.getNamespaceId().dataset(name), 1),
                                           ImmutableList.<Constraint>of())));
     messagingService.publish(StoreRequestBuilder.of(topicId).addPayloads(GSON.toJson(notification)).build());
   }
