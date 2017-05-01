@@ -15,6 +15,7 @@
 */
 
 @tbody-font-color: #373a3c;
+@tag-success-color: #5cb85c;
 
 body.state-hydrator-create.state-hydrator {
   .modal.wrangler-modal {
@@ -48,7 +49,7 @@ body.state-hydrator-create.state-hydrator {
               white-space: nowrap;
               border-radius: 4px;
               &.tag-success {
-                background-color: #5cb85c;
+                background-color: @tag-success-color;
               }
             }
           }
@@ -67,7 +68,7 @@ body.state-hydrator-create.state-hydrator {
         .dataprep-table .table {
           thead th {
             font-size: 14px;
-            padding: 10px;
+            padding: 0.75rem;
 
             input {
               padding: 0;
