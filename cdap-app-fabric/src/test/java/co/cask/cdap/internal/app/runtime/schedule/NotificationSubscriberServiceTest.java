@@ -85,8 +85,8 @@ public class NotificationSubscriberServiceTest {
     }
   };
 
-  private static final TopicId T1 = NamespaceId.DEFAULT.topic("topic1");
-  private static final TopicId T2 = NamespaceId.DEFAULT.topic("topic2");
+  private static final TopicId T1 = NamespaceId.SYSTEM.topic("topic1");
+  private static final TopicId T2 = NamespaceId.SYSTEM.topic("topic2");
   private static final ApplicationId APP_ID = NamespaceId.DEFAULT.app("AppWithMultipleWorkflows");
   private static final int GENERATION = 1;
   private static final Map<String, String> DEFAULT_PROPERTY = ImmutableMap.of(TopicMetadata.TTL_KEY,
@@ -149,7 +149,7 @@ public class NotificationSubscriberServiceTest {
       LOG.info("workflow2 runRecords: {}",
                store.getRuns(workflow2, ProgramRunStatus.ALL, 0, Long.MAX_VALUE, Integer.MAX_VALUE));
     }
-    store.removeAll(NamespaceId.DEFAULT);
+    store.removeApplication(APP_ID);
   }
 
   private void waitForCompleteRuns(int numRuns, final ProgramId program)

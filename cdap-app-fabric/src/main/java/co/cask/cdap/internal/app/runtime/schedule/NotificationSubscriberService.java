@@ -17,12 +17,18 @@
 package co.cask.cdap.internal.app.runtime.schedule;
 
 import co.cask.cdap.api.Transactional;
+import co.cask.cdap.api.TxRunnable;
+import co.cask.cdap.api.data.DatasetContext;
 import co.cask.cdap.api.dataset.lib.CloseableIterator;
 import co.cask.cdap.api.messaging.Message;
 import co.cask.cdap.api.messaging.MessageFetcher;
+import co.cask.cdap.api.messaging.TopicNotFoundException;
 import co.cask.cdap.app.store.Store;
+import co.cask.cdap.common.ServiceUnavailableException;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
+import co.cask.cdap.common.logging.LogSamplers;
+import co.cask.cdap.common.logging.Loggers;
 import co.cask.cdap.common.namespace.NamespaceQueryAdmin;
 import co.cask.cdap.common.service.RetryStrategy;
 import co.cask.cdap.data.dataset.SystemDatasetInstantiator;
@@ -48,16 +54,16 @@ import org.apache.twill.common.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 
 /**
@@ -65,6 +71,9 @@ import javax.annotation.Nullable;
  */
 public class NotificationSubscriberService extends AbstractExecutionThreadService {
   private static final Logger LOG = LoggerFactory.getLogger(NotificationSubscriberService.class);
+  // Sampling log only log once per 10000
+  private static final Logger SAMPLING_LOG = Loggers.sampling(LOG, LogSamplers.limitRate(10000));
+
 
   private static final Gson GSON = new Gson();
 
@@ -73,14 +82,13 @@ public class NotificationSubscriberService extends AbstractExecutionThreadServic
   private final List<NotificationSubscriberThread> subscriberThreads;
   /** Temporarily unused **/
   private final Transactional transactional;
+  private final MultiThreadMessagingContext messagingContext;
   private final Store store;
   private final ProgramLifecycleService lifecycleService;
   private final PropertiesResolver propertiesResolver;
   private final NamespaceQueryAdmin namespaceQueryAdmin;
   private final CConfiguration cConf;
-  private final AtomicBoolean runFlag;
   private ScheduleTaskRunner taskRunner;
-  private BlockingQueue<Job> readyJobs;
   private Map<String, List<ProgramSchedule>> scheduleMap;
   private ListeningExecutorService taskExecutorService;
 
@@ -92,22 +100,21 @@ public class NotificationSubscriberService extends AbstractExecutionThreadServic
                                 CConfiguration cConf,
                                 DatasetFramework datasetFramework,
                                 TransactionSystemClient txClient) {
-    this.transactional = Transactions.createTransactionalWithRetry(
-      Transactions.createTransactional(new MultiThreadDatasetCache(
-        new SystemDatasetInstantiator(datasetFramework), txClient,
-        NamespaceId.SYSTEM, ImmutableMap.<String, String>of(), null, null)),
-      RetryStrategies.retryOnConflict(20, 100)
-    );
     this.store = store;
     this.lifecycleService = lifecycleService;
     this.propertiesResolver = propertiesResolver;
     this.namespaceQueryAdmin = namespaceQueryAdmin;
     this.cConf = cConf;
     this.messagingService = messagingService;
+    this.messagingContext = new MultiThreadMessagingContext(messagingService);
+    this.transactional = Transactions.createTransactionalWithRetry(
+      Transactions.createTransactional(new MultiThreadDatasetCache(
+        new SystemDatasetInstantiator(datasetFramework), txClient,
+        NamespaceId.SYSTEM, ImmutableMap.<String, String>of(), null, null, this.messagingContext)),
+      RetryStrategies.retryOnConflict(20, 100)
+    );
     this.topics = cConf.getTrimmedStrings(Constants.AppFabric.SCHEDULER_MESSAGING_TOPICS);
     this.subscriberThreads = new ArrayList<>();
-    this.readyJobs = new LinkedBlockingQueue<>();
-    this.runFlag = new AtomicBoolean();
   }
 
   @Override
@@ -159,44 +166,47 @@ public class NotificationSubscriberService extends AbstractExecutionThreadServic
     for (NotificationSubscriberThread thread : subscriberThreads) {
       thread.interrupt();
     }
+
+    LOG.info("NotificationSubscriberService stopped.");
+  }
+
+  @Override
+  protected void shutDown() throws Exception {
     if (taskExecutorService != null) {
       taskExecutorService.shutdownNow();
     }
-    LOG.info("NotificationSubscriberService stopped.");
   }
 
   private class NotificationSubscriberThread extends Thread {
     private final String topic;
     private final RetryStrategy scheduleStrategy;
-    private final MultiThreadMessagingContext messagingContext;
+    private final Deque<Job> readyJobs;
     private int emptyFetchCount;
     private int failureCount;
     private String messageId;
+
 
     NotificationSubscriberThread(String topic, @Nullable String messageId) {
       super(String.format("NotificationSubscriberThread-%s", topic));
       this.topic = topic;
       this.messageId = messageId;
-      // Retry with delay ranging from 0.1s to 30s
+      // TODO: [CDAP-11370] Need to be configured in cdap-default.xml. Retry with delay ranging from 0.1s to 30s
       scheduleStrategy =
         co.cask.cdap.common.service.RetryStrategies.exponentialDelay(100, 30000, TimeUnit.MILLISECONDS);
-      this.messagingContext = new MultiThreadMessagingContext(messagingService);
-      emptyFetchCount = 0;
-      failureCount = 0;
+      this.readyJobs = new ArrayDeque<>();
     }
 
     @Override
     public void run() {
       while (isRunning()) {
         try {
-          long sleepTime = fetchNewNotifications();
+          long sleepTime = processNotifications();
           // Don't sleep if sleepTime returned is 0
           if (sleepTime > 0) {
             TimeUnit.MILLISECONDS.sleep(sleepTime);
           }
         } catch (InterruptedException e) {
-          // It's triggered by stop
-          Thread.currentThread().interrupt();
+          // sleep is interrupted, just exit without doing anything
         }
       }
     }
@@ -206,41 +216,16 @@ public class NotificationSubscriberService extends AbstractExecutionThreadServic
      *
      * @return sleep time in milliseconds before next fetch
      */
-    private long fetchNewNotifications() {
+    private long processNotifications() {
       try {
-        MessageFetcher fetcher = messagingContext.getMessageFetcher();
+        final MessageFetcher fetcher = messagingContext.getMessageFetcher();
         emptyFetchCount++;
-        try (CloseableIterator<Message> iterator = fetcher.fetch(NamespaceId.DEFAULT.getNamespace(),
-                                                                 topic, 100, messageId)) {
-          LOG.trace("Fetch with messageId = {}", messageId);
-          String currentMessageId = null;
-          try {
-            while (iterator.hasNext() && isRunning()) {
-              emptyFetchCount = 0;
-              Message message = iterator.next();
-              Notification notification;
-              try {
-                notification = GSON.fromJson(new String(message.getPayload(), StandardCharsets.UTF_8),
-                                             Notification.class);
-                processNotification(notification);
-              } catch (JsonSyntaxException e) {
-                LOG.warn("Failed to decode message with id {}. Skipped. ", message.getId(), e);
-              }
-              // Record current message's Id no matter decode is successful or not,
-              // so that this message will be skipped in next fetch
-              currentMessageId = message.getId();
-            }
-          } catch (Exception e) {
-            LOG.warn("Failed to fetch new notification. Will retry in next run", e);
-            failureCount++;
-            // Exponential strategy doesn't use the time component, so doesn't matter what we passed in as startTime
-            return scheduleStrategy.nextRetry(failureCount, 0);
+        transactional.execute(new TxRunnable() {
+          @Override
+          public void run(DatasetContext context) throws TopicNotFoundException, IOException {
+            fetchNotifications(fetcher);
           }
-          if (currentMessageId != null) {
-            // Update messageId with the last message's Id
-            messageId = currentMessageId;
-          }
-        }
+        });
       } catch (Exception e) {
         LOG.warn("Failed to get notification. Will retry in next run", e);
         failureCount++;
@@ -249,31 +234,54 @@ public class NotificationSubscriberService extends AbstractExecutionThreadServic
       }
       failureCount = 0;
 
-      if (runFlag.compareAndSet(false, true)) {
         try {
           runReadyJobs();
         } catch (Exception e) {
           LOG.error("Failed to run scheduled programs", e);
-        } finally {
-          runFlag.set(false);
         }
-      }
       // Back-off if it was empty fetch.
       if (emptyFetchCount > 0) {
-        // Exponential strategy doesn't use the time component, so doesn't matter what we passed in as startTime
-        return scheduleStrategy.nextRetry(emptyFetchCount, 0);
+        return 2000L;
       }
       return 0L; // No sleep if the fetch is non-empty
     }
 
-    private void runReadyJobs() {
-      List<Job> readyJobsCopy = new ArrayList<>();
-      Iterator<Job> iterator = readyJobs.iterator();
-      while (iterator.hasNext()) {
-        readyJobsCopy.add(iterator.next());
-        iterator.remove();
+    private void fetchNotifications(MessageFetcher fetcher) throws TopicNotFoundException, IOException {
+      try (CloseableIterator<Message> iterator = fetcher.fetch(NamespaceId.SYSTEM.getNamespace(),
+                                                               topic, 100, messageId)) {
+        LOG.trace("Fetch with messageId = {}", messageId);
+        String currentMessageId = null;
+        while (iterator.hasNext() && isRunning()) {
+          emptyFetchCount = 0;
+          Message message = iterator.next();
+          Notification notification = null;
+          try {
+            notification = GSON.fromJson(new String(message.getPayload(), StandardCharsets.UTF_8),
+                                         Notification.class);
+          } catch (JsonSyntaxException e) {
+            LOG.warn("Failed to decode message with id {}. Skipped. ", message.getId(), e);
+          }
+          if (notification != null) {
+            processNotification(notification);
+          }
+          // Record current message's Id no matter decode is successful or not,
+          // so that this message will be skipped in next fetch
+          currentMessageId = message.getId();
+        }
+        if (currentMessageId != null) {
+          // Update messageId with the last message's Id
+          messageId = currentMessageId;
+        }
+      } catch (ServiceUnavailableException | TopicNotFoundException e) {
+        SAMPLING_LOG.info("Failed to fetch from TMS. Will retry later.", e);
+        failureCount++;
       }
-      for (Job job : readyJobsCopy) {
+    }
+
+    private void runReadyJobs() {
+      Iterator<Job> jobIterator = readyJobs.iterator();
+      while (jobIterator.hasNext()) {
+        Job job = jobIterator.next();
         ProgramSchedule schedule = job.getSchedule();
         try {
           // TODO: Temporarily execute scheduled program without any checks. Need to check appSpec and scheduleSpec
@@ -284,6 +292,7 @@ public class NotificationSubscriberService extends AbstractExecutionThreadServic
           LOG.warn("Failed to run program {} in schedule {}. Skip running this program.",
                    schedule.getProgramId(), schedule.getName(), e);
         }
+        jobIterator.remove();
       }
     }
 
@@ -312,12 +321,7 @@ public class NotificationSubscriberService extends AbstractExecutionThreadServic
 
       List<Job> newReadyJobs = updateJobs(triggeredSchedules);
       for (Job job : newReadyJobs) {
-        try {
-          readyJobs.put(job);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          return;
-        }
+          readyJobs.add(job);
       }
     }
   }
