@@ -16,6 +16,7 @@
 
 package co.cask.cdap.internal.app.deploy;
 
+import co.cask.cdap.api.Transactional;
 import co.cask.cdap.api.metrics.MetricStore;
 import co.cask.cdap.app.deploy.Manager;
 import co.cask.cdap.app.store.Store;
@@ -52,6 +53,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import com.google.inject.name.Named;
+import org.apache.tephra.TransactionSystemClient;
 
 /**
  * This class is concrete implementation of {@link Manager} that deploys an Application.
@@ -85,6 +87,7 @@ public class LocalApplicationManager<I, O> implements Manager<I, O> {
   private final PrivilegesManager privilegesManager;
   private final Impersonator impersonator;
   private final AuthenticationContext authenticationContext;
+  private final TransactionSystemClient txClient;
 
   @Inject
   LocalApplicationManager(CConfiguration configuration, PipelineFactory pipelineFactory,
@@ -95,7 +98,8 @@ public class LocalApplicationManager<I, O> implements Manager<I, O> {
                           @Assisted ProgramTerminator programTerminator, MetricStore metricStore,
                           UsageRegistry usageRegistry, ArtifactRepository artifactRepository,
                           MetadataStore metadataStore, PrivilegesManager privilegesManager,
-                          Impersonator impersonator, AuthenticationContext authenticationContext) {
+                          Impersonator impersonator, AuthenticationContext authenticationContext,
+                          TransactionSystemClient txClient) {
     this.configuration = configuration;
     this.pipelineFactory = pipelineFactory;
     this.store = store;
@@ -114,6 +118,7 @@ public class LocalApplicationManager<I, O> implements Manager<I, O> {
     this.privilegesManager = privilegesManager;
     this.impersonator = impersonator;
     this.authenticationContext = authenticationContext;
+    this.txClient = txClient;
   }
 
   @Override
@@ -129,7 +134,7 @@ public class LocalApplicationManager<I, O> implements Manager<I, O> {
     pipeline.addLast(new ProgramGenerationStage(privilegesManager, authenticationContext));
     pipeline.addLast(new DeleteScheduleStage(scheduler));
     pipeline.addLast(new ApplicationRegistrationStage(store, usageRegistry, ownerAdmin));
-    pipeline.addLast(new CreateSchedulesStage(scheduler));
+    pipeline.addLast(new CreateSchedulesStage(scheduler, datasetFramework, txClient));
     pipeline.addLast(new SystemMetadataWriterStage(metadataStore));
     pipeline.setFinally(new DeploymentCleanupStage());
     return pipeline.execute(input);

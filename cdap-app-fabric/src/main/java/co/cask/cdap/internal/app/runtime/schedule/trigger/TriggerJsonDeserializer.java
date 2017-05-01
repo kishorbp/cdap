@@ -16,6 +16,7 @@
 
 package co.cask.cdap.internal.app.runtime.schedule.trigger;
 
+import co.cask.cdap.internal.schedule.trigger.Trigger;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -26,7 +27,7 @@ import com.google.gson.JsonPrimitive;
 import java.lang.reflect.Type;
 
 /**
- * Serialization and deserializtion of Triggers as Json.
+ * Serialization and deserialization of Triggers as Json.
  *
  * All triggers inherit the {@link Trigger#className} field from the base class. Here we use that
  * during deserialization to determine the actual subclass, and then deserialize based on that.

@@ -14,9 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.internal.app.runtime.schedule.trigger;
-
-import com.google.common.base.Objects;
+package co.cask.cdap.internal.schedule.trigger;
 
 /**
  * A Trigger that schedules a ProgramSchedule, based upon a particular cron expression.
@@ -40,13 +38,16 @@ public class TimeTrigger extends Trigger {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     TimeTrigger that = (TimeTrigger) o;
-    return Objects.equal(cronExpression, that.cronExpression);
+
+    return cronExpression.equals(that.cronExpression);
+
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(cronExpression);
+    return cronExpression.hashCode();
   }
 
   @Override

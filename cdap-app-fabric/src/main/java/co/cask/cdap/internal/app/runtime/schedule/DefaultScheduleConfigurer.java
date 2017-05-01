@@ -17,20 +17,22 @@
 package co.cask.cdap.internal.app.runtime.schedule;
 
 import co.cask.cdap.api.schedule.ScheduleConfigurer;
-import co.cask.cdap.internal.app.runtime.schedule.constraint.ConcurrencyConstraint;
-import co.cask.cdap.internal.app.runtime.schedule.constraint.Constraint;
-import co.cask.cdap.internal.app.runtime.schedule.constraint.DelayConstraint;
-import co.cask.cdap.internal.app.runtime.schedule.constraint.DurationSinceLastRunConstraint;
-import co.cask.cdap.internal.app.runtime.schedule.constraint.TimeRangeConstraint;
-import co.cask.cdap.internal.app.runtime.schedule.trigger.PartitionTrigger;
-import co.cask.cdap.internal.app.runtime.schedule.trigger.TimeTrigger;
-import co.cask.cdap.proto.id.ProgramId;
+import co.cask.cdap.internal.schedule.ScheduleCreationSpec;
+import co.cask.cdap.internal.schedule.constraint.ConcurrencyConstraint;
+import co.cask.cdap.internal.schedule.constraint.Constraint;
+import co.cask.cdap.internal.schedule.constraint.DelayConstraint;
+import co.cask.cdap.internal.schedule.constraint.DurationSinceLastRunConstraint;
+import co.cask.cdap.internal.schedule.constraint.TimeRangeConstraint;
+import co.cask.cdap.internal.schedule.trigger.PartitionTrigger;
+import co.cask.cdap.internal.schedule.trigger.TimeTrigger;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The default implementation of {@link ScheduleConfigurer}.
@@ -38,17 +40,18 @@ import java.util.Map;
 public class DefaultScheduleConfigurer implements ScheduleConfigurer {
 
   private final String name;
-  private final ProgramId programId;
+  private final AtomicReference<ScheduleCreationSpec> reference;
   private String description;
   private Map<String, String> properties;
   private final List<Constraint> constraints;
 
-  public DefaultScheduleConfigurer(String name, ProgramId programId) {
+  public DefaultScheduleConfigurer(String name, AtomicReference<ScheduleCreationSpec> reference) {
     this.name = name;
     this.description = "";
-    this.programId = programId;
     this.properties = new HashMap<>();
     this.constraints = new ArrayList<>();
+
+    this.reference = reference;
   }
 
   @Override
@@ -93,18 +96,19 @@ public class DefaultScheduleConfigurer implements ScheduleConfigurer {
 
   @Override
   public void triggerByTime(String cronExpression) {
-    setSchedule(new ProgramSchedule(name, description, programId, properties,
+    setSchedule(new ScheduleCreationSpec(name, description, properties,
                                     new TimeTrigger(cronExpression), constraints));
   }
 
   @Override
   public void triggerOnPartitions(String datasetName, int numPartitions) {
-    setSchedule(new ProgramSchedule(name, description, programId, properties,
-                                    new PartitionTrigger(programId.getNamespaceId().dataset(datasetName),
-                                                         numPartitions),
+    setSchedule(new ScheduleCreationSpec(name, description, properties,
+                                    new PartitionTrigger(datasetName, numPartitions),
                                     constraints));
   }
 
-  private void setSchedule(ProgramSchedule schedule) {
+  private void setSchedule(ScheduleCreationSpec schedule) {
+    // setSchedule can not be called twice on the same configurer (semantics are not defined)
+    Preconditions.checkArgument(reference.compareAndSet(null, schedule));
   }
 }

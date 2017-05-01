@@ -14,34 +14,31 @@
  * the License.
  */
 
-package co.cask.cdap.internal.app.runtime.schedule;
+package co.cask.cdap.internal.schedule;
 
-import co.cask.cdap.internal.app.runtime.schedule.constraint.Constraint;
+import co.cask.cdap.internal.schedule.constraint.Constraint;
 import co.cask.cdap.internal.schedule.trigger.Trigger;
-import co.cask.cdap.proto.id.ProgramId;
 
 import java.util.List;
 import java.util.Map;
 
 /**
- * A schedule for a program.
+ *
  */
-public class ProgramSchedule {
+public class ScheduleCreationSpec {
+
   private final String name;
   private final String description;
 
-  private final ProgramId programId;
   private final Map<String, String> properties;
 
   private final Trigger trigger;
   private final List<Constraint> constraints;
 
-  public ProgramSchedule(String name, String description,
-                         ProgramId programId, Map<String, String> properties,
-                         Trigger trigger, List<Constraint> constraints) {
+  public ScheduleCreationSpec(String name, String description, Map<String, String> properties, Trigger trigger,
+                              List<Constraint> constraints) {
     this.name = name;
     this.description = description;
-    this.programId = programId;
     this.properties = properties;
     this.trigger = trigger;
     this.constraints = constraints;
@@ -53,10 +50,6 @@ public class ProgramSchedule {
 
   public String getDescription() {
     return description;
-  }
-
-  public ProgramId getProgramId() {
-    return programId;
   }
 
   public Map<String, String> getProperties() {

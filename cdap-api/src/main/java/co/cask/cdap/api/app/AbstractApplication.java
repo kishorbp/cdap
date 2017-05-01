@@ -21,6 +21,7 @@ import co.cask.cdap.api.flow.Flow;
 import co.cask.cdap.api.mapreduce.MapReduce;
 import co.cask.cdap.api.schedule.SchedulableProgramType;
 import co.cask.cdap.api.schedule.Schedule;
+import co.cask.cdap.api.schedule.ScheduleConfigurer;
 import co.cask.cdap.api.service.BasicService;
 import co.cask.cdap.api.service.Service;
 import co.cask.cdap.api.service.http.HttpServiceHandler;
@@ -28,9 +29,11 @@ import co.cask.cdap.api.spark.Spark;
 import co.cask.cdap.api.worker.Worker;
 import co.cask.cdap.api.workflow.Workflow;
 import co.cask.cdap.internal.api.AbstractPluginConfigurable;
+import co.cask.cdap.internal.schedule.ScheduleCreationSpec;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A support class for {@link Application Applications} which reduces repetition and results in
@@ -169,5 +172,17 @@ public abstract class AbstractApplication<T extends Config> extends AbstractPlug
    */
   protected void scheduleWorkflow(Schedule schedule, String workflowName, Map<String, String> properties) {
     configurer.addSchedule(schedule, SchedulableProgramType.WORKFLOW, workflowName, properties);
+  }
+
+
+  /**
+   * Schedule the specified {@link Workflow}
+   * @param scheduleName the name of the schedule
+   * @param workflowName the name of the Workflow
+   *
+   * @return The {@link ScheduleConfigurer} used to configure the schedule
+   */
+  protected ScheduleConfigurer scheduleWorkflow(String scheduleName, String workflowName) {
+    return configurer.scheduleWorkflow(scheduleName, workflowName);
   }
 }

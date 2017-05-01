@@ -16,7 +16,9 @@
 
 package co.cask.cdap.internal.app.runtime.schedule.trigger;
 
-import co.cask.cdap.proto.id.DatasetId;
+import co.cask.cdap.internal.schedule.trigger.PartitionTrigger;
+import co.cask.cdap.internal.schedule.trigger.TimeTrigger;
+import co.cask.cdap.internal.schedule.trigger.Trigger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.Assert;
@@ -31,7 +33,7 @@ public class TriggerJsonDeserializerTest {
       .registerTypeAdapter(Trigger.class, new TriggerJsonDeserializer())
       .create();
 
-    Trigger trigger = new PartitionTrigger(new DatasetId("test", "myds"), 4);
+    Trigger trigger = new PartitionTrigger("myds", 4);
     String json = gson.toJson(trigger);
     Trigger trigger1 = gson.fromJson(json, Trigger.class);
     Assert.assertEquals(trigger, trigger1);

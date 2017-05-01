@@ -14,14 +14,16 @@
  * the License.
  */
 
-package co.cask.cdap.internal.app.runtime.schedule.trigger;
+package co.cask.cdap.internal.schedule.constraint;
 
 /**
- * The mechanism by which a ProgramSchedule is scheduled.
+ *
  */
-public abstract class Trigger {
+public class DurationSinceLastRunConstraint extends Constraint {
 
-  // used to deserialize the actual trigger subclass, in TriggerJsonDeserializer
-  private final String className = getClass().getName();
+  private final long millisSinceLastRun;
 
+  public DurationSinceLastRunConstraint(long millisSinceLastRun) {
+    this.millisSinceLastRun = millisSinceLastRun;
+  }
 }

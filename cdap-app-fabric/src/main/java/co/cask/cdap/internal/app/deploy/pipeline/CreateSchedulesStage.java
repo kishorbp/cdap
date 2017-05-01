@@ -16,38 +16,72 @@
 
 package co.cask.cdap.internal.app.deploy.pipeline;
 
+import co.cask.cdap.api.Transactional;
+import co.cask.cdap.api.data.DatasetContext;
+import co.cask.cdap.api.dataset.DatasetManagementException;
+import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.schedule.ScheduleSpecification;
+import co.cask.cdap.data.dataset.SystemDatasetInstantiator;
+import co.cask.cdap.data2.datafabric.dataset.DatasetsUtil;
+import co.cask.cdap.data2.dataset2.DatasetFramework;
+import co.cask.cdap.data2.dataset2.MultiThreadDatasetCache;
+import co.cask.cdap.data2.transaction.TransactionSystemClientAdapter;
+import co.cask.cdap.data2.transaction.Transactions;
+import co.cask.cdap.data2.transaction.TxCallable;
+import co.cask.cdap.internal.app.runtime.schedule.ProgramSchedule;
 import co.cask.cdap.internal.app.runtime.schedule.Scheduler;
 import co.cask.cdap.internal.app.runtime.schedule.SchedulerException;
+import co.cask.cdap.internal.app.runtime.schedule.store.ProgramScheduleStoreDataset;
+import co.cask.cdap.internal.schedule.ScheduleCreationSpec;
 import co.cask.cdap.pipeline.AbstractStage;
 import co.cask.cdap.proto.ProgramType;
 import co.cask.cdap.proto.ScheduleType;
 import co.cask.cdap.proto.id.ApplicationId;
+import co.cask.cdap.proto.id.DatasetId;
+import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.proto.id.ProgramId;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import com.google.common.reflect.TypeToken;
+import org.apache.tephra.RetryStrategies;
+import org.apache.tephra.TransactionSystemClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
 
 /**
  * This {@link co.cask.cdap.pipeline.Stage} is responsible for automatic creation of any new schedules
  * specified by the application. If the schedules already exist, it will update them. For schedule deletion see
  * {@link DeleteScheduleStage}. They are broken into separate stages because we want schedule creation and update to
- * happen after the app is registered in the app store as it might be possible that a schedule gets trigged instantly
+ * happen after the app is registered in the app store as it might be possible that a schedule gets triggered instantly
  * after being added when the app is still to be registered. See CDAP-8918 for details.
  */
 public class CreateSchedulesStage extends AbstractStage<ApplicationWithPrograms> {
 
   private static final Logger LOG = LoggerFactory.getLogger(CreateSchedulesStage.class);
+  private static final DatasetId DATASET_ID = NamespaceId.SYSTEM.dataset("program.schedules");
   private final Scheduler scheduler;
 
-  public CreateSchedulesStage(Scheduler scheduler) {
+  private final Transactional transactional;
+  private final DatasetFramework datasetFramework;
+
+  public CreateSchedulesStage(Scheduler scheduler, DatasetFramework datasetFramework,
+                              TransactionSystemClient txClient) {
     super(TypeToken.of(ApplicationWithPrograms.class));
     this.scheduler = scheduler;
+    this.datasetFramework = datasetFramework;
+    this.transactional = Transactions.createTransactionalWithRetry(
+      Transactions.createTransactional(new MultiThreadDatasetCache(new SystemDatasetInstantiator(datasetFramework),
+                                                                   new TransactionSystemClientAdapter(txClient),
+                                                                   DATASET_ID.getParent(),
+                                                                   Collections.<String, String>emptyMap(), null, null)),
+      RetryStrategies.retryOnConflict(20, 100)
+    );
   }
 
   @Override
@@ -97,8 +131,33 @@ public class CreateSchedulesStage extends AbstractStage<ApplicationWithPrograms>
       createSchedule(appId.program(programType, scheduleSpec.getProgram().getProgramName()), scheduleSpec);
     }
 
+    for (final Map.Entry<String, ScheduleCreationSpec> entry : input.getSpecification().getProgramSchedules().entrySet()) {
+      Transactions.execute(transactional, new TxCallable<Void>() {
+        @Override
+        public Void call(DatasetContext context) throws Exception {
+
+          ScheduleCreationSpec scheduleCreationSpec = entry.getValue();
+
+          ProgramSchedule programSchedule =
+            new ProgramSchedule(scheduleCreationSpec.getName(), scheduleCreationSpec.getDescription(), null,
+                                scheduleCreationSpec.getProperties(), scheduleCreationSpec.getTrigger(),
+                                // TODO: support constraints
+                                new ArrayList<co.cask.cdap.internal.app.runtime.schedule.constraint.Constraint>());
+
+          getScheduleDataset(context).addSchedule(programSchedule);
+          return null;
+        }
+      });
+    }
+
     // Emit the input to next stage.
     emit(input);
+  }
+
+  private ProgramScheduleStoreDataset getScheduleDataset(DatasetContext context)
+    throws IOException, DatasetManagementException {
+    return DatasetsUtil.getOrCreateDataset(context, datasetFramework, DATASET_ID,
+                                           ProgramScheduleStoreDataset.class.getName(), DatasetProperties.EMPTY);
   }
 
   private void createSchedule(ProgramId programId, ScheduleSpecification scheduleSpec) throws SchedulerException {

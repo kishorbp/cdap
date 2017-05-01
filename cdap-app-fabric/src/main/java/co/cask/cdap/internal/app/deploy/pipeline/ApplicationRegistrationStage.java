@@ -118,6 +118,8 @@ public class ApplicationRegistrationStage extends AbstractStage<ApplicationWithP
                                                newSpecification.getFlows(), newSpecification.getMapReduce(),
                                                newSpecification.getSpark(), newSpecification.getWorkflows(),
                                                newSpecification.getServices(), filteredExistingSchedules,
+                                               // TODO: filter?
+                                               newSpecification.getProgramSchedules(),
                                                newSpecification.getWorkers(), newSpecification.getPlugins());
   }
 

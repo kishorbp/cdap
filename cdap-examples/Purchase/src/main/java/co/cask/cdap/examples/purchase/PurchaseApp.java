@@ -83,6 +83,10 @@ public class PurchaseApp extends AbstractApplication {
       "PurchaseHistoryWorkflow"
     );
 
+    scheduleWorkflow("partitionSchedule", "PurchaseHistoryWorkflow")
+      .setDescription("dataTrigger")
+      .triggerOnPartitions("datasetName", 1);
+
     createDataset("history", PurchaseHistoryStore.class, PurchaseHistoryStore.properties("History dataset"));
     try {
       createDataset("purchases", ObjectMappedTable.class, ObjectMappedTableProperties.builder().setType(Purchase.class)
