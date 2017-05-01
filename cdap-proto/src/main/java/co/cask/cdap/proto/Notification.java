@@ -18,6 +18,7 @@ package co.cask.cdap.proto;
 
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nullable;
 
 /**
  * Notification for events, such as cron expression triggering or data being added to a dataset.
@@ -65,5 +66,13 @@ public class Notification {
   @Override
   public int hashCode() {
     return Objects.hash(notificationType, properties);
+  }
+
+  @Nullable
+  public String getNotificationKey() {
+    if (!Type.PARTITION.equals(triggerType)) {
+      return null;
+    }
+    return String.format("PARTITION:%s", properties.get("datasetId"));
   }
 }

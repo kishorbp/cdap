@@ -218,6 +218,11 @@ public final class Constants {
     public static final String PROGRAM_CONTAINER_DIST_JARS = "program.container.dist.jars";
 
     public static final String APP_UPDATE_SCHEDULES = "app.deploy.update.schedules";
+
+    /**
+     * Comma separated TMS topics for scheduler
+     */
+    public static final String SCHEDULER_MESSAGING_TOPICS = "app.scheduler.messaging.topics";
   }
 
   /**
