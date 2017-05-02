@@ -14,13 +14,13 @@
  * the License.
 */
 import Rx from 'rx';
-const MyStreamApi = {
+const MyDatasetApi = {
   __list: [],
   __programs: [],
   isError: false
 };
 
-MyStreamApi.generalGetter = function(property) {
+MyDatasetApi.generalGetter = function(property) {
   return function() {
     let subject = new Rx.Subject();
     setTimeout(() => {
@@ -34,14 +34,14 @@ MyStreamApi.generalGetter = function(property) {
   }.bind(this);
 };
 
-MyStreamApi.list = MyStreamApi.generalGetter('__list');
-MyStreamApi.__setList = function(list, isError) {
+MyDatasetApi.list = MyDatasetApi.generalGetter('__list');
+MyDatasetApi.__setList = function(list, isError) {
   this.__isError = isError;
   this.__list = list;
 };
-MyStreamApi.getPrograms = MyStreamApi.generalGetter('__programs');
-MyStreamApi.__setPrograms = function(programs, isError) {
+MyDatasetApi.getPrograms = MyDatasetApi.generalGetter('__programs');
+MyDatasetApi.__setPrograms = function(programs, isError) {
   this.__isError = isError;
   this.__programs = programs;
 };
-export {MyStreamApi};
+export {MyDatasetApi};

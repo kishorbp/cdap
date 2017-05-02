@@ -13,14 +13,28 @@
  * License for the specific language governing permissions and limitations under
  * the License.
 */
+
+/*
+  TODO: This is just a stub(mock) for jest to not invoke the actual socket connection.
+  This needs to be exported as a singleton class. Will do when we actually need to mock a function.
+*/
 import Rx from 'rx';
-const MyStreamApi = {
-  __list: [],
-  __programs: [],
-  isError: false
+
+const MyProgramApi = {
+  runRecords: [],
+  status: {},
+  __isError: false
 };
 
-MyStreamApi.generalGetter = function(property) {
+MyProgramApi.setRunRecords = function(records, isError) {
+  this.runRecords = records;
+  this.__isError = isError;
+};
+MyProgramApi.setProgramStatus = function(status, isError) {
+  this.status = status;
+  this.__isError = isError;
+};
+MyProgramApi.generalGetter = function(property) {
   return function() {
     let subject = new Rx.Subject();
     setTimeout(() => {
@@ -33,15 +47,7 @@ MyStreamApi.generalGetter = function(property) {
     return subject;
   }.bind(this);
 };
-
-MyStreamApi.list = MyStreamApi.generalGetter('__list');
-MyStreamApi.__setList = function(list, isError) {
-  this.__isError = isError;
-  this.__list = list;
-};
-MyStreamApi.getPrograms = MyStreamApi.generalGetter('__programs');
-MyStreamApi.__setPrograms = function(programs, isError) {
-  this.__isError = isError;
-  this.__programs = programs;
-};
-export {MyStreamApi};
+MyProgramApi.pollRuns = MyProgramApi.generalGetter('runRecords');
+MyProgramApi.runs = MyProgramApi.generalGetter('runRecords');
+MyProgramApi.pollStatus = MyProgramApi.generalGetter('status');
+module.exports = {MyProgramApi};
