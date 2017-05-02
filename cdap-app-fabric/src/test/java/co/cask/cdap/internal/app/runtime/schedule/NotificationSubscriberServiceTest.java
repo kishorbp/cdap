@@ -24,6 +24,7 @@ import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.utils.Tasks;
 import co.cask.cdap.internal.AppFabricTestHelper;
 import co.cask.cdap.internal.app.runtime.schedule.constraint.Constraint;
+import co.cask.cdap.internal.app.runtime.schedule.store.Schedulers;
 import co.cask.cdap.internal.app.runtime.schedule.trigger.PartitionTrigger;
 import co.cask.cdap.messaging.MessagingService;
 import co.cask.cdap.messaging.TopicMetadata;
@@ -32,6 +33,7 @@ import co.cask.cdap.proto.Notification;
 import co.cask.cdap.proto.ProgramRunStatus;
 import co.cask.cdap.proto.ProgramType;
 import co.cask.cdap.proto.id.ApplicationId;
+import co.cask.cdap.proto.id.DatasetId;
 import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.proto.id.ProgramId;
 import co.cask.cdap.proto.id.TopicId;
@@ -167,14 +169,15 @@ public class NotificationSubscriberServiceTest {
                                    Map<String, List<ProgramSchedule>> scheduleMap)
     throws TopicNotFoundException, IOException {
 
-    String name = topicId.getTopic() + "-" + programId.getProgram();
+    String name = topicId.getTopic() + programId.getProgram();
+    DatasetId datasetId = programId.getNamespaceId().dataset(name);
     Notification notification =
-      new Notification(Notification.Type.PARTITION, ImmutableMap.of("datasetId", name));
-    scheduleMap.put(notification.getNotificationKey(),
+      new Notification(Notification.Type.PARTITION, ImmutableMap.of("datasetId", datasetId.toString()));
+    scheduleMap.put(Schedulers.triggerKeyForPartition(datasetId),
                     ImmutableList.of(
                       new ProgramSchedule(name, "",
                                           programId, ImmutableMap.<String, String>of(),
-                                          new PartitionTrigger(programId.getNamespaceId().dataset(name), 1),
+                                          new PartitionTrigger(datasetId, 1),
                                           ImmutableList.<Constraint>of())));
     messagingService.publish(StoreRequestBuilder.of(topicId).addPayloads(GSON.toJson(notification)).build());
   }

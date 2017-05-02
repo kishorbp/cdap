@@ -67,15 +67,4 @@ public class Notification {
   public int hashCode() {
     return Objects.hash(notificationType, properties);
   }
-
-  /**
-   * Temporary method. Will be removed after Andrea's PR is merged
-   */
-  @Nullable
-  public String getNotificationKey() {
-    if (!Type.PARTITION.equals(notificationType)) {
-      return null;
-    }
-    return String.format("PARTITION:%s", properties.get("datasetId"));
-  }
 }

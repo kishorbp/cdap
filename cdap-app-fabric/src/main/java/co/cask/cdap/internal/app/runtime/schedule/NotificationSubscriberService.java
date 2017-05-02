@@ -36,10 +36,12 @@ import co.cask.cdap.data2.dataset2.DatasetFramework;
 import co.cask.cdap.data2.dataset2.MultiThreadDatasetCache;
 import co.cask.cdap.data2.transaction.Transactions;
 import co.cask.cdap.internal.app.runtime.messaging.MultiThreadMessagingContext;
+import co.cask.cdap.internal.app.runtime.schedule.store.Schedulers;
 import co.cask.cdap.internal.app.services.ProgramLifecycleService;
 import co.cask.cdap.internal.app.services.PropertiesResolver;
 import co.cask.cdap.messaging.MessagingService;
 import co.cask.cdap.proto.Notification;
+import co.cask.cdap.proto.id.DatasetId;
 import co.cask.cdap.proto.id.NamespaceId;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
@@ -310,11 +312,16 @@ public class NotificationSubscriberService extends AbstractExecutionThreadServic
     }
 
     private void processNotification(Notification notification) {
-      String key = notification.getNotificationKey();
-      if (key == null) {
+      // Temporarily skip notification of TIME type
+      if (Notification.Type.TIME.equals(notification.getNotificationType())) {
         return;
       }
-      List<ProgramSchedule> triggeredSchedules = getSchedules(key);
+      String datasetIdString = notification.getProperties().get("datasetId");
+      if (datasetIdString == null) {
+        return;
+      }
+      DatasetId datasetId = DatasetId.fromString(datasetIdString);
+      List<ProgramSchedule> triggeredSchedules = getSchedules(Schedulers.triggerKeyForPartition(datasetId));
       if (triggeredSchedules == null) {
         return;
       }
