@@ -29,13 +29,12 @@ import co.cask.cdap.api.dataset.table.Scan;
 import co.cask.cdap.api.dataset.table.Scanner;
 import co.cask.cdap.common.AlreadyExistsException;
 import co.cask.cdap.common.NotFoundException;
+import co.cask.cdap.common.schedule.PartitionTrigger;
 import co.cask.cdap.common.schedule.ProgramSchedule;
 import co.cask.cdap.common.schedule.Schedulers;
-import co.cask.cdap.common.schedule.TriggerJsonDeserializer;
-import co.cask.cdap.internal.schedule.trigger.PartitionTrigger;
+import co.cask.cdap.common.schedule.TriggerCodec;
 import co.cask.cdap.internal.schedule.trigger.Trigger;
 import co.cask.cdap.proto.id.ApplicationId;
-import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.proto.id.ProgramId;
 import co.cask.cdap.proto.id.ScheduleId;
 import com.google.common.base.Joiner;
@@ -87,7 +86,7 @@ public class ProgramScheduleStoreDataset extends AbstractDataset {
   static final String INDEX_COLUMNS = TRIGGER_KEY_COLUMN; // trigger key
 
   private static final Gson GSON =
-    new GsonBuilder().registerTypeAdapter(Trigger.class, new TriggerJsonDeserializer()).create();
+    new GsonBuilder().registerTypeAdapter(Trigger.class, new TriggerCodec()).create();
 
   private final IndexedTable store;
 
@@ -273,8 +272,7 @@ public class ProgramScheduleStoreDataset extends AbstractDataset {
   private static List<String> extractTriggerKeys(ProgramSchedule schedule) {
     Trigger trigger = schedule.getTrigger();
     if (trigger instanceof PartitionTrigger) {
-      NamespaceId ns = schedule.getProgramId().getNamespaceId();
-      String triggerKey = Schedulers.triggerKeyForPartition(ns.dataset(((PartitionTrigger) trigger).getDatasetName()));
+      String triggerKey = Schedulers.triggerKeyForPartition(((PartitionTrigger) trigger).getDatasetId());
       return Collections.singletonList(triggerKey);
     }
     return Collections.emptyList();

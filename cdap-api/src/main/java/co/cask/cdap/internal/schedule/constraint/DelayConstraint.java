@@ -17,7 +17,7 @@
 package co.cask.cdap.internal.schedule.constraint;
 
 /**
- *
+ * A constraint which requires a certain amount of delay pass after the trigger is fired, before executing the program.
  */
 public class DelayConstraint extends Constraint {
 

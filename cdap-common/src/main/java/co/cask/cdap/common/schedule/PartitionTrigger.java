@@ -14,23 +14,26 @@
  * the License.
  */
 
-package co.cask.cdap.internal.schedule.trigger;
+package co.cask.cdap.common.schedule;
 
+
+import co.cask.cdap.internal.schedule.trigger.Trigger;
+import co.cask.cdap.proto.id.DatasetId;
 
 /**
  * A Trigger that schedules a ProgramSchedule, when a certain number of partitions are added to a PartitionedFileSet.
  */
 public class PartitionTrigger extends Trigger {
-  private final String datasetName;
+  private final DatasetId datasetId;
   private final int numPartitions;
 
-  public PartitionTrigger(String datasetName, int numPartitions) {
-    this.datasetName = datasetName;
+  public PartitionTrigger(DatasetId datasetId, int numPartitions) {
+    this.datasetId = datasetId;
     this.numPartitions = numPartitions;
   }
 
-  public String getDatasetName() {
-    return datasetName;
+  public DatasetId getDatasetId() {
+    return datasetId;
   }
 
   public int getNumPartitions() {
@@ -51,13 +54,13 @@ public class PartitionTrigger extends Trigger {
     if (numPartitions != that.numPartitions) {
       return false;
     }
-    return datasetName.equals(that.datasetName);
+    return datasetId.equals(that.datasetId);
 
   }
 
   @Override
   public int hashCode() {
-    int result = datasetName.hashCode();
+    int result = datasetId.hashCode();
     result = 31 * result + numPartitions;
     return result;
   }
@@ -65,7 +68,7 @@ public class PartitionTrigger extends Trigger {
   @Override
   public String toString() {
     return "PartitionTrigger{" +
-      "datasetName=" + datasetName +
+      "datasetName=" + datasetId +
       ", numPartitions=" + numPartitions +
       '}';
   }

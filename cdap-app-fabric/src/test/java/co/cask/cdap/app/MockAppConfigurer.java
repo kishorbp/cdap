@@ -35,6 +35,7 @@ import co.cask.cdap.api.worker.Worker;
 import co.cask.cdap.api.workflow.Workflow;
 import co.cask.cdap.internal.app.runtime.schedule.DefaultScheduleConfigurer;
 import co.cask.cdap.internal.schedule.ScheduleCreationSpec;
+import co.cask.cdap.proto.id.NamespaceId;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -108,7 +109,9 @@ public final class MockAppConfigurer implements ApplicationConfigurer {
 
   @Override
   public ScheduleConfigurer scheduleWorkflow(String scheduleName, String workflowName) {
-    return new DefaultScheduleConfigurer(scheduleName, new AtomicReference<ScheduleCreationSpec>());
+    // the result of this won't actually be used, but the returned object will have its methods called
+    return new DefaultScheduleConfigurer(scheduleName, NamespaceId.DEFAULT, workflowName,
+                                         new AtomicReference<ScheduleCreationSpec>());
   }
 
   @Nullable

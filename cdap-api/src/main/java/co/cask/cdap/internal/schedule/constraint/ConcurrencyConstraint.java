@@ -17,7 +17,7 @@
 package co.cask.cdap.internal.schedule.constraint;
 
 /**
- *
+ * A constraint which dictates an upper bound on the number of concurrent schedule runs.
  */
 public class ConcurrencyConstraint extends Constraint {
 

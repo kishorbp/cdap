@@ -16,7 +16,6 @@
 
 package co.cask.cdap.internal.app.deploy;
 
-import co.cask.cdap.api.Transactional;
 import co.cask.cdap.api.metrics.MetricStore;
 import co.cask.cdap.app.deploy.Manager;
 import co.cask.cdap.app.store.Store;

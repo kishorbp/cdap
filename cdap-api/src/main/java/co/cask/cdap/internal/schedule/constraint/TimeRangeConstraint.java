@@ -17,7 +17,7 @@
 package co.cask.cdap.internal.schedule.constraint;
 
 /**
- *
+ * A Constraint that defines a time range in which the schedule is allowed to execute.
  */
 public class TimeRangeConstraint extends Constraint {
 

@@ -16,25 +16,26 @@
 
 package co.cask.cdap.common.schedule.trigger;
 
-import co.cask.cdap.common.schedule.TriggerJsonDeserializer;
-import co.cask.cdap.internal.schedule.trigger.PartitionTrigger;
-import co.cask.cdap.internal.schedule.trigger.TimeTrigger;
+import co.cask.cdap.common.schedule.TriggerCodec;
+import co.cask.cdap.common.schedule.PartitionTrigger;
+import co.cask.cdap.common.schedule.TimeTrigger;
 import co.cask.cdap.internal.schedule.trigger.Trigger;
+import co.cask.cdap.proto.id.NamespaceId;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TriggerJsonDeserializerTest {
+public class TriggerCodecTest {
 
   @Test
   public void testTriggerCodec() {
 
     Gson gson = new GsonBuilder()
-      .registerTypeAdapter(Trigger.class, new TriggerJsonDeserializer())
+      .registerTypeHierarchyAdapter(Trigger.class, new TriggerCodec())
       .create();
 
-    Trigger trigger = new PartitionTrigger("myds", 4);
+    Trigger trigger = new PartitionTrigger(new NamespaceId("mynamespace").dataset("myds"), 4);
     String json = gson.toJson(trigger);
     Trigger trigger1 = gson.fromJson(json, Trigger.class);
     Assert.assertEquals(trigger, trigger1);

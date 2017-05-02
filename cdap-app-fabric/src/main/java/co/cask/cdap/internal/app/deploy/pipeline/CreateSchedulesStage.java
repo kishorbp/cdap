@@ -21,17 +21,17 @@ import co.cask.cdap.api.data.DatasetContext;
 import co.cask.cdap.api.dataset.DatasetManagementException;
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.schedule.ScheduleSpecification;
+import co.cask.cdap.common.schedule.ProgramSchedule;
 import co.cask.cdap.data.dataset.SystemDatasetInstantiator;
 import co.cask.cdap.data2.datafabric.dataset.DatasetsUtil;
+import co.cask.cdap.data2.dataset2.lib.schedule.ProgramScheduleStoreDataset;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
 import co.cask.cdap.data2.dataset2.MultiThreadDatasetCache;
 import co.cask.cdap.data2.transaction.TransactionSystemClientAdapter;
 import co.cask.cdap.data2.transaction.Transactions;
 import co.cask.cdap.data2.transaction.TxCallable;
-import co.cask.cdap.common.schedule.ProgramSchedule;
 import co.cask.cdap.internal.app.runtime.schedule.Scheduler;
 import co.cask.cdap.internal.app.runtime.schedule.SchedulerException;
-import co.cask.cdap.data2.dataset2.lib.schedule.ProgramScheduleStoreDataset;
 import co.cask.cdap.internal.schedule.ScheduleCreationSpec;
 import co.cask.cdap.pipeline.AbstractStage;
 import co.cask.cdap.proto.ProgramType;
@@ -85,7 +85,7 @@ public class CreateSchedulesStage extends AbstractStage<ApplicationWithPrograms>
   }
 
   @Override
-  public void process(ApplicationWithPrograms input) throws Exception {
+  public void process(final ApplicationWithPrograms input) throws Exception {
 
     if (!input.canUpdateSchedules()) {
       // if we cant update schedules, emit and return
@@ -131,7 +131,8 @@ public class CreateSchedulesStage extends AbstractStage<ApplicationWithPrograms>
       createSchedule(appId.program(programType, scheduleSpec.getProgram().getProgramName()), scheduleSpec);
     }
 
-    for (final Map.Entry<String, ScheduleCreationSpec> entry : input.getSpecification().getProgramSchedules().entrySet()) {
+    Map<String, ScheduleCreationSpec> programSchedules = input.getSpecification().getProgramSchedules();
+    for (final Map.Entry<String, ScheduleCreationSpec> entry : programSchedules.entrySet()) {
       Transactions.execute(transactional, new TxCallable<Void>() {
         @Override
         public Void call(DatasetContext context) throws Exception {
@@ -139,7 +140,9 @@ public class CreateSchedulesStage extends AbstractStage<ApplicationWithPrograms>
           ScheduleCreationSpec scheduleCreationSpec = entry.getValue();
 
           ProgramSchedule programSchedule =
-            new ProgramSchedule(scheduleCreationSpec.getName(), scheduleCreationSpec.getDescription(), null,
+            new ProgramSchedule(scheduleCreationSpec.getName(), scheduleCreationSpec.getDescription(),
+                                // TODO: support other program Types?
+                                input.getApplicationId().workflow(scheduleCreationSpec.getProgramName()),
                                 scheduleCreationSpec.getProperties(), scheduleCreationSpec.getTrigger(),
                                 // TODO: support constraints
                                 new ArrayList<co.cask.cdap.common.schedule.constraint.Constraint>());

@@ -23,22 +23,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
+ * Information for creating a program schedule.
  */
 public class ScheduleCreationSpec {
 
   private final String name;
   private final String description;
-
+  private final String programName;
   private final Map<String, String> properties;
-
   private final Trigger trigger;
   private final List<Constraint> constraints;
 
-  public ScheduleCreationSpec(String name, String description, Map<String, String> properties, Trigger trigger,
-                              List<Constraint> constraints) {
+  public ScheduleCreationSpec(String name, String description, String programName, Map<String, String> properties,
+                              Trigger trigger, List<Constraint> constraints) {
     this.name = name;
     this.description = description;
+    this.programName = programName;
     this.properties = properties;
     this.trigger = trigger;
     this.constraints = constraints;
@@ -50,6 +50,10 @@ public class ScheduleCreationSpec {
 
   public String getDescription() {
     return description;
+  }
+
+  public String getProgramName() {
+    return programName;
   }
 
   public Map<String, String> getProperties() {

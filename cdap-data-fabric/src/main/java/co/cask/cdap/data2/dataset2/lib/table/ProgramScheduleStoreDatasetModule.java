@@ -39,7 +39,7 @@ import co.cask.cdap.data2.dataset2.lib.table.inmemory.InMemoryTableDefinition;
 /**
  * DatasetModule containing ProgramScheduleStoreDataset.
  *
- * Depends on {@link Table}.
+ * Depends on {@link IndexedTable}.
  */
 public class ProgramScheduleStoreDatasetModule implements DatasetModule {
 

@@ -203,7 +203,7 @@ public class DefaultAppConfigurer extends DefaultPluginConfigurer implements App
   public ScheduleConfigurer scheduleWorkflow(String scheduleName, String workflowName) {
     AtomicReference<ScheduleCreationSpec> reference = new AtomicReference<>();
     programSchedules.put(scheduleName, reference);
-    return new DefaultScheduleConfigurer(scheduleName, reference);
+    return new DefaultScheduleConfigurer(scheduleName, deployNamespace.toEntityId(), workflowName, reference);
   }
 
   /**

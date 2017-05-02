@@ -23,8 +23,9 @@ import co.cask.cdap.internal.schedule.constraint.Constraint;
 import co.cask.cdap.internal.schedule.constraint.DelayConstraint;
 import co.cask.cdap.internal.schedule.constraint.DurationSinceLastRunConstraint;
 import co.cask.cdap.internal.schedule.constraint.TimeRangeConstraint;
-import co.cask.cdap.internal.schedule.trigger.PartitionTrigger;
-import co.cask.cdap.internal.schedule.trigger.TimeTrigger;
+import co.cask.cdap.common.schedule.PartitionTrigger;
+import co.cask.cdap.common.schedule.TimeTrigger;
+import co.cask.cdap.proto.id.NamespaceId;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
@@ -41,13 +42,18 @@ public class DefaultScheduleConfigurer implements ScheduleConfigurer {
 
   private final String name;
   private final AtomicReference<ScheduleCreationSpec> reference;
+  private final NamespaceId namespace;
+  private final String programName;
+  private final List<Constraint> constraints;
   private String description;
   private Map<String, String> properties;
-  private final List<Constraint> constraints;
 
-  public DefaultScheduleConfigurer(String name, AtomicReference<ScheduleCreationSpec> reference) {
+  public DefaultScheduleConfigurer(String name, NamespaceId namespace, String programName,
+                                   AtomicReference<ScheduleCreationSpec> reference) {
     this.name = name;
     this.description = "";
+    this.namespace = namespace;
+    this.programName = programName;
     this.properties = new HashMap<>();
     this.constraints = new ArrayList<>();
 
@@ -96,15 +102,15 @@ public class DefaultScheduleConfigurer implements ScheduleConfigurer {
 
   @Override
   public void triggerByTime(String cronExpression) {
-    setSchedule(new ScheduleCreationSpec(name, description, properties,
-                                    new TimeTrigger(cronExpression), constraints));
+    setSchedule(new ScheduleCreationSpec(name, description, programName, properties,
+                                         new TimeTrigger(cronExpression), constraints));
   }
 
   @Override
   public void triggerOnPartitions(String datasetName, int numPartitions) {
-    setSchedule(new ScheduleCreationSpec(name, description, properties,
-                                    new PartitionTrigger(datasetName, numPartitions),
-                                    constraints));
+    setSchedule(new ScheduleCreationSpec(name, description, programName, properties,
+                                         new PartitionTrigger(namespace.dataset(datasetName), numPartitions),
+                                         constraints));
   }
 
   private void setSchedule(ScheduleCreationSpec schedule) {

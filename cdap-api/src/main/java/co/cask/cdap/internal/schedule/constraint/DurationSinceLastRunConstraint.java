@@ -17,7 +17,7 @@
 package co.cask.cdap.internal.schedule.constraint;
 
 /**
- *
+ * A Constraint which requires a certain duration pass since the last execution of the schedule.
  */
 public class DurationSinceLastRunConstraint extends Constraint {
 

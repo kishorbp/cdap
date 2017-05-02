@@ -14,7 +14,9 @@
  * the License.
  */
 
-package co.cask.cdap.internal.schedule.trigger;
+package co.cask.cdap.common.schedule;
+
+import co.cask.cdap.internal.schedule.trigger.Trigger;
 
 /**
  * A Trigger that schedules a ProgramSchedule, based upon a particular cron expression.
