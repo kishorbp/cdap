@@ -233,6 +233,10 @@ export default class Overview extends Component {
         );
       }
 
+      if (Tag === 'div') {
+        return (<div></div>);
+      }
+
       return React.createElement(
         Tag,
         {
@@ -258,5 +262,5 @@ export default class Overview extends Component {
 }
 
 Overview.propTypes = {
-  onCloseAndRefresh: PropTypes.func
+  onCloseAndRefresh: PropTypes.func,
 };
