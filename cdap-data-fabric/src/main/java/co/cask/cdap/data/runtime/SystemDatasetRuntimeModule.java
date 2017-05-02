@@ -28,6 +28,7 @@ import co.cask.cdap.data2.dataset2.lib.partitioned.TimePartitionedFileSetModule;
 import co.cask.cdap.data2.dataset2.lib.table.CoreDatasetsModule;
 import co.cask.cdap.data2.dataset2.lib.table.CubeModule;
 import co.cask.cdap.data2.dataset2.lib.table.ObjectMappedTableModule;
+import co.cask.cdap.data2.dataset2.lib.table.ProgramScheduleStoreDatasetModule;
 import co.cask.cdap.data2.dataset2.module.lib.hbase.HBaseMetricsTableModule;
 import co.cask.cdap.data2.dataset2.module.lib.hbase.HBaseTableModule;
 import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryMetricsTableModule;
@@ -141,5 +142,6 @@ public class SystemDatasetRuntimeModule extends RuntimeModule {
     mapBinder.addBinding("metadata").toInstance(new MetadataDatasetModule());
     mapBinder.addBinding("lineage").toInstance(new LineageDatasetModule());
     mapBinder.addBinding("externalDataset").toInstance(new ExternalDatasetModule());
+    mapBinder.addBinding("scheduleStore").toInstance(new ProgramScheduleStoreDatasetModule());
   }
 }

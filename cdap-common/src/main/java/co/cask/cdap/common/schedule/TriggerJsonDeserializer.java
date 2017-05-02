@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.internal.app.runtime.schedule.trigger;
+package co.cask.cdap.common.schedule;
 
 import co.cask.cdap.internal.schedule.trigger.Trigger;
 import com.google.gson.JsonDeserializationContext;

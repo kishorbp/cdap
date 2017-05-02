@@ -28,10 +28,10 @@ import co.cask.cdap.data2.dataset2.MultiThreadDatasetCache;
 import co.cask.cdap.data2.transaction.TransactionSystemClientAdapter;
 import co.cask.cdap.data2.transaction.Transactions;
 import co.cask.cdap.data2.transaction.TxCallable;
-import co.cask.cdap.internal.app.runtime.schedule.ProgramSchedule;
+import co.cask.cdap.common.schedule.ProgramSchedule;
 import co.cask.cdap.internal.app.runtime.schedule.Scheduler;
 import co.cask.cdap.internal.app.runtime.schedule.SchedulerException;
-import co.cask.cdap.internal.app.runtime.schedule.store.ProgramScheduleStoreDataset;
+import co.cask.cdap.data2.dataset2.lib.schedule.ProgramScheduleStoreDataset;
 import co.cask.cdap.internal.schedule.ScheduleCreationSpec;
 import co.cask.cdap.pipeline.AbstractStage;
 import co.cask.cdap.proto.ProgramType;
@@ -142,7 +142,7 @@ public class CreateSchedulesStage extends AbstractStage<ApplicationWithPrograms>
             new ProgramSchedule(scheduleCreationSpec.getName(), scheduleCreationSpec.getDescription(), null,
                                 scheduleCreationSpec.getProperties(), scheduleCreationSpec.getTrigger(),
                                 // TODO: support constraints
-                                new ArrayList<co.cask.cdap.internal.app.runtime.schedule.constraint.Constraint>());
+                                new ArrayList<co.cask.cdap.common.schedule.constraint.Constraint>());
 
           getScheduleDataset(context).addSchedule(programSchedule);
           return null;

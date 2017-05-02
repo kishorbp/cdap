@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.internal.app.runtime.schedule.store;
+package co.cask.cdap.data2.dataset2.lib.schedule;
 
 import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.api.dataset.DatasetSpecification;
@@ -29,8 +29,9 @@ import co.cask.cdap.api.dataset.table.Scan;
 import co.cask.cdap.api.dataset.table.Scanner;
 import co.cask.cdap.common.AlreadyExistsException;
 import co.cask.cdap.common.NotFoundException;
-import co.cask.cdap.internal.app.runtime.schedule.ProgramSchedule;
-import co.cask.cdap.internal.app.runtime.schedule.trigger.TriggerJsonDeserializer;
+import co.cask.cdap.common.schedule.ProgramSchedule;
+import co.cask.cdap.common.schedule.Schedulers;
+import co.cask.cdap.common.schedule.TriggerJsonDeserializer;
 import co.cask.cdap.internal.schedule.trigger.PartitionTrigger;
 import co.cask.cdap.internal.schedule.trigger.Trigger;
 import co.cask.cdap.proto.id.ApplicationId;

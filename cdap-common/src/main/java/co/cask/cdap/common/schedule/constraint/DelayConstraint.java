@@ -14,24 +14,23 @@
  * the License.
  */
 
-package co.cask.cdap.internal.app.runtime.schedule.constraint;
+package co.cask.cdap.common.schedule.constraint;
 
-import co.cask.cdap.internal.app.runtime.schedule.ProgramSchedule;
+import co.cask.cdap.common.schedule.ProgramSchedule;
 
 /**
- * A constraint which dictates an upper bound on the number of concurrent schedule runs.
+ * A constraint which requires a certain amount of delay pass after the trigger is fired, before executing the program.
  */
-public class ConcurrencyConstraint extends Constraint {
+public class DelayConstraint extends Constraint {
 
-  private final int maxConcurrency;
+  private final long millisAfterTrigger;
 
-  public ConcurrencyConstraint(int maxConcurrency) {
-    this.maxConcurrency = maxConcurrency;
+  public DelayConstraint(long millisAfterTrigger) {
+    this.millisAfterTrigger = millisAfterTrigger;
   }
 
   @Override
   public Result check(ProgramSchedule schedule, ConstraintContext context) {
-    // TODO: Implement constraints: CDAP-11338
     return Result.SATISFIED;
   }
 }

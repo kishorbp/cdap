@@ -14,9 +14,9 @@
  * the License.
  */
 
-package co.cask.cdap.internal.app.runtime.schedule.constraint;
+package co.cask.cdap.common.schedule.constraint;
 
-import co.cask.cdap.internal.app.runtime.schedule.ProgramSchedule;
+import co.cask.cdap.common.schedule.ProgramSchedule;
 
 /**
  * A Constraint which requires a certain duration pass since the last execution of the schedule.

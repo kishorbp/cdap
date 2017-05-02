@@ -31,7 +31,7 @@ import co.cask.cdap.api.worker.WorkerSpecification;
 import co.cask.cdap.api.workflow.WorkflowActionSpecification;
 import co.cask.cdap.api.workflow.WorkflowNode;
 import co.cask.cdap.api.workflow.WorkflowSpecification;
-import co.cask.cdap.internal.app.runtime.schedule.trigger.TriggerJsonDeserializer;
+import co.cask.cdap.common.schedule.TriggerJsonDeserializer;
 import co.cask.cdap.internal.io.SchemaGenerator;
 import co.cask.cdap.internal.io.SchemaTypeAdapter;
 import co.cask.cdap.internal.schedule.trigger.Trigger;

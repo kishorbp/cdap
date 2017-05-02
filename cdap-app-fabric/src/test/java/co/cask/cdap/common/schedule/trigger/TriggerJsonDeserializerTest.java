@@ -14,8 +14,9 @@
  * the License.
  */
 
-package co.cask.cdap.internal.app.runtime.schedule.trigger;
+package co.cask.cdap.common.schedule.trigger;
 
+import co.cask.cdap.common.schedule.TriggerJsonDeserializer;
 import co.cask.cdap.internal.schedule.trigger.PartitionTrigger;
 import co.cask.cdap.internal.schedule.trigger.TimeTrigger;
 import co.cask.cdap.internal.schedule.trigger.Trigger;

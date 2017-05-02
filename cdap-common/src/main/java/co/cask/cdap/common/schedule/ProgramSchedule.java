@@ -14,9 +14,9 @@
  * the License.
  */
 
-package co.cask.cdap.internal.app.runtime.schedule;
+package co.cask.cdap.common.schedule;
 
-import co.cask.cdap.internal.app.runtime.schedule.constraint.Constraint;
+import co.cask.cdap.common.schedule.constraint.Constraint;
 import co.cask.cdap.internal.schedule.trigger.Trigger;
 import co.cask.cdap.proto.id.ProgramId;
 

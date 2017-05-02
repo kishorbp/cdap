@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.internal.app.runtime.schedule.store;
+package co.cask.cdap.common.schedule;
 
 import co.cask.cdap.proto.id.DatasetId;
 import co.cask.cdap.proto.id.ScheduleId;
