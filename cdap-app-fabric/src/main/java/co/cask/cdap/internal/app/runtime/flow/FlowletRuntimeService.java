@@ -71,10 +71,8 @@ final class FlowletRuntimeService extends AbstractIdleService {
     initFlowlet();
     try {
       flowletProcessDriver.startAndWait();
-    } catch (UncheckedExecutionException e) {
-      LOG.error("Failed to start Flowlet '{}' for Flow '{}'",
-                flowletContext.getFlowletId(), flowletContext.getFlowId(), e);
-      throw e;
+    } catch (UncheckedExecutionException exception) {
+      throw exception;
     }
     LOG.info("Started Flowlet '{}' for Flow '{}'. Flowlet details: [{}]",
              flowletContext.getFlowletId(), flowletContext.getFlowId(), flowletContext);
@@ -87,7 +85,8 @@ final class FlowletRuntimeService extends AbstractIdleService {
       stopService(flowletProcessDriver);
     }
     destroyFlowlet();
-    LOG.info("Stopped Flowlet '{}' for Flow '{}'", flowletContext.getFlowletId(), flowletContext.getFlowId());
+    LOG.info("Stopped Flowlet '{}' Instance {} for Flow '{}'", flowletContext.getFlowletId(),
+             flowletContext.getInstanceId(), flowletContext.getFlowId());
     stopService(serviceHook);
   }
 
@@ -135,12 +134,12 @@ final class FlowletRuntimeService extends AbstractIdleService {
       try {
         flowletContext.destroyProgram(flowlet, flowletContext, Transactions.getTransactionControl(
           TransactionControl.IMPLICIT, Flowlet.class, flowlet, "destroy"), false);
-        LOG.debug("Flowlet destroyed: " + flowletContext);
+        LOG.debug("Flowlet destroyed: {}", flowletContext);
       } catch (TransactionFailureException e) {
         throw e.getCause() == null ? e : e.getCause();
       }
     } catch (Throwable cause) {
-      LOG.error("Flowlet threw exception during flowlet destruction: " + flowletContext, cause);
+      LOG.error("Flowlet threw exception during flowlet destruction: {}", flowletContext, cause);
       throw Throwables.propagate(cause);
     }
   }
